@@ -1,6 +1,6 @@
 {
   "name": "liquid-glass-components",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Liquid glass UI components for React: edge refraction, dynamic specular light, spring physics and metaball merging.",
   "keywords": [
     "react",
