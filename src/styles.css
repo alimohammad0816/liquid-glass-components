@@ -1,0 +1,759 @@
+/*
+ * liquid-glass-components
+ *
+ * Design tokens, the glass surface and the styles of every component. Class names are
+ * prefixed with `lg-` and all state is expressed through custom properties and data
+ * attributes, so the stylesheet can be themed from the outside without touching the
+ * components.
+ */
+
+/* ------------------------------------------------------------------ tokens */
+
+.lg-root {
+  /* Colors that can be overridden by the consumer */
+  --lg-accent: #0a84ff;
+  --lg-on-accent: #fff;
+
+  /* Supplied by GlassProvider as inline custom properties:
+     --lg-clear (0..1), --lg-blur, --lg-sat, --lg-specular (0..1) */
+
+  /* Derived values */
+  --lg-tint-a: calc(var(--lg-tint-base) + (1 - var(--lg-clear)) * var(--lg-tint-range));
+  --lg-tint-a-reg: min(0.9, calc(var(--lg-tint-a) + 0.42));
+  --lg-tinted-a: min(0.96, calc(0.8 + var(--lg-tint-a) * 0.2));
+  --lg-blur-reg: calc(var(--lg-blur) + 14px);
+  --lg-spec: calc(var(--lg-specular) * var(--lg-spec-scale));
+  --lg-text: rgb(var(--lg-text-rgb));
+  --lg-text-2: rgba(var(--lg-text-rgb), 0.62);
+
+  color: var(--lg-text);
+}
+
+.lg-root,
+.lg-root[data-mode="light"] {
+  --lg-surface: 255, 255, 255;
+  --lg-rim: 255, 255, 255;
+  --lg-shadow: 15, 23, 42;
+  --lg-shadow-a: 0.14;
+  --lg-text-rgb: 12, 19, 34;
+  --lg-tint-base: 0.06;
+  --lg-tint-range: 0.74;
+  --lg-spec-scale: 1;
+  --lg-success: #34c759;
+  --lg-danger: #d92d20;
+}
+
+.lg-root[data-mode="dark"] {
+  --lg-surface: 30, 32, 42;
+  --lg-rim: 255, 255, 255;
+  --lg-shadow: 0, 0, 0;
+  --lg-shadow-a: 0.42;
+  --lg-text-rgb: 245, 247, 251;
+  --lg-tint-base: 0.1;
+  --lg-tint-range: 0.72;
+  /* A white highlight turns harsh quickly on a dark background */
+  --lg-spec-scale: 0.6;
+  --lg-success: #30d158;
+  --lg-danger: #ff6961;
+}
+
+/* --------------------------------------------------------- glass surface */
+
+.lg-surface {
+  --lg-surface-blur: var(--lg-blur);
+  --lg-drop-shadow:
+    0 8px 28px rgba(var(--lg-shadow), calc(var(--lg-shadow-a) * 0.8)),
+    0 1px 3px rgba(var(--lg-shadow), calc(var(--lg-shadow-a) * 0.6));
+
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  color: var(--lg-text);
+  background-color: rgba(var(--lg-surface), var(--lg-tint-a));
+  -webkit-backdrop-filter: blur(var(--lg-surface-blur)) saturate(var(--lg-sat));
+  backdrop-filter: blur(var(--lg-surface-blur)) saturate(var(--lg-sat));
+  /* The fixed top and bottom highlights are intentionally absent: the rim defines the light direction */
+  box-shadow:
+    inset 0 0 18px rgba(var(--lg-rim), calc(0.14 * var(--lg-spec))),
+    var(--lg-drop-shadow);
+  /* No transform transition: the glass is moved by springs from motion, and a CSS
+     transition on the same property would fight them every frame */
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.lg-surface[data-elevation="0"] {
+  --lg-drop-shadow: 0 0 0 0 transparent;
+}
+
+.lg-surface[data-elevation="2"] {
+  --lg-drop-shadow:
+    0 24px 64px rgba(var(--lg-shadow), var(--lg-shadow-a)),
+    0 2px 8px rgba(var(--lg-shadow), calc(var(--lg-shadow-a) * 0.6));
+}
+
+/* Text carrying surfaces become denser only when `regularMaterial` is enabled */
+.lg-surface[data-regular] {
+  --lg-surface-blur: var(--lg-blur-reg);
+  background-color: rgba(var(--lg-surface), var(--lg-tint-a-reg));
+}
+
+.lg-surface[data-interactive] {
+  cursor: pointer;
+}
+
+/* Light variables are inherited, so an unlit surface must be explicitly zeroed */
+.lg-surface[data-lit="false"] {
+  --lg-near: 0;
+}
+
+/*
+ * Rim: a uniform faint line always defines the shape. On top of it, the halo around the
+ * pointer and its weaker mirrored reflection. Far from the pointer `--lg-near` is zero.
+ * `--lg-lift` (press feedback) brightens the whole rim.
+ */
+.lg-surface::before,
+.lg-merge__rim {
+  background:
+    radial-gradient(
+      110px circle at var(--lg-px, 50%) var(--lg-py, 0px),
+      rgba(var(--lg-rim), calc(0.58 * var(--lg-near, 0) * var(--lg-spec))) 0%,
+      rgba(var(--lg-rim), calc(0.2 * var(--lg-near, 0) * var(--lg-spec))) 50%,
+      rgba(var(--lg-rim), 0) 100%
+    ),
+    radial-gradient(
+      90px circle at var(--lg-rx, 50%) var(--lg-ry, 100%),
+      rgba(var(--lg-rim), calc(0.16 * var(--lg-near, 0) * var(--lg-spec))) 0%,
+      rgba(var(--lg-rim), 0) 100%
+    ),
+    linear-gradient(
+      rgba(var(--lg-rim), calc((0.22 + 0.35 * var(--lg-lift, 0)) * var(--lg-spec))),
+      rgba(var(--lg-rim), calc((0.22 + 0.35 * var(--lg-lift, 0)) * var(--lg-spec)))
+    );
+}
+
+.lg-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: inherit;
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Sheen: a soft shine of the surface under the same light, below the content */
+.lg-surface::after,
+.lg-merge__glass {
+  background-image:
+    radial-gradient(
+      160px circle at var(--lg-px, 50%) var(--lg-py, 0px),
+      rgba(var(--lg-rim), calc(0.12 * var(--lg-near, 0) * var(--lg-spec))) 0%,
+      rgba(var(--lg-rim), 0) 70%
+    ),
+    radial-gradient(
+      120% 140% at 50% 0%,
+      rgba(var(--lg-rim), calc(0.22 * var(--lg-lift, 0) * var(--lg-spec))) 0%,
+      rgba(var(--lg-rim), 0) 75%
+    );
+}
+
+.lg-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Rainbow rim of a lens (a knob under a finger): a thin ring with all the colors */
+.lg-iris {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--lg-iris-angle, 0deg),
+    #ff4d6d,
+    #ffb347,
+    #fff275,
+    #6dffa0,
+    #4dd8ff,
+    #6d7dff,
+    #d46dff,
+    #ff4d6d
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(0.6px) saturate(1.2);
+  transition: opacity 0.22s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Zero sized container for an SVG filter definition */
+.lg-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Reset shared by every glass control rendered as a button */
+.lg-reset {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lg-focusable:focus-visible {
+  outline: 2px solid rgba(var(--lg-text-rgb), 0.55);
+  outline-offset: 2px;
+}
+
+/* Continuous corners for ordinary (non glass) elements. Set `--lg-corner-radius`. */
+.lg-continuous {
+  border-radius: var(--lg-corner-radius);
+}
+
+/* Keep in sync with CONTINUOUS_EXTENT and CONTINUOUS_K in src/core/corners.ts */
+@supports (corner-shape: superellipse(2)) {
+  .lg-continuous {
+    border-radius: calc(var(--lg-corner-radius) * 1.19);
+    corner-shape: superellipse(1.31);
+  }
+}
+
+/* ----------------------------------------------------------- glass merge */
+
+.lg-merge {
+  position: relative;
+  isolation: isolate;
+  color: var(--lg-text);
+}
+
+.lg-merge__layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lg-merge__shadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+
+.lg-merge__glass {
+  --lg-surface-blur: var(--lg-blur);
+
+  position: absolute;
+  inset: 0;
+  background-color: rgba(var(--lg-surface), var(--lg-tint-a));
+  -webkit-backdrop-filter: blur(var(--lg-surface-blur)) saturate(var(--lg-sat));
+  backdrop-filter: blur(var(--lg-surface-blur)) saturate(var(--lg-sat));
+}
+
+.lg-merge__glass[data-regular] {
+  --lg-surface-blur: var(--lg-blur-reg);
+  background-color: rgba(var(--lg-surface), var(--lg-tint-a-reg));
+}
+
+.lg-merge__rim {
+  position: absolute;
+  inset: 0;
+}
+
+.lg-merge__item {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+}
+
+/* ---------------------------------------------------------------- button */
+
+.lg-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding-inline: 18px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.lg-button[data-size="sm"] {
+  height: 34px;
+  padding-inline: 14px;
+  font-size: 13px;
+}
+
+.lg-button[data-size="lg"] {
+  height: 52px;
+  padding-inline: 24px;
+  font-size: 16px;
+}
+
+.lg-button[data-variant="tinted"] {
+  color: var(--lg-on-accent);
+}
+
+.lg-button__icon {
+  display: inline-flex;
+}
+
+.lg-button__icon svg {
+  width: calc(1em + 5px);
+  height: calc(1em + 5px);
+}
+
+.lg-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--lg-size, 44px);
+  height: var(--lg-size, 44px);
+}
+
+.lg-icon-button svg {
+  width: calc(var(--lg-size, 44px) * 0.48);
+  height: calc(var(--lg-size, 44px) * 0.48);
+}
+
+.lg-button:disabled,
+.lg-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------- segmented */
+
+.lg-segmented {
+  display: inline-flex;
+  padding: 4px;
+}
+
+.lg-segmented__lens {
+  position: absolute;
+  left: 0;
+  box-shadow:
+    0 1px 6px rgba(var(--lg-shadow), 0.12),
+    inset 0 1px 1px rgba(var(--lg-rim), calc(0.9 * var(--lg-spec))),
+    inset 0 0 0 0.5px rgba(var(--lg-text-rgb), 0.06);
+}
+
+.lg-segmented__item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: 18px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--lg-text-2);
+  touch-action: pan-y;
+  transition: color 0.25s;
+}
+
+.lg-segmented__item[aria-checked="true"] {
+  font-weight: 800;
+  color: var(--lg-text);
+}
+
+.lg-segmented__item svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lg-segmented[data-size="sm"] .lg-segmented__item {
+  height: 30px;
+  padding-inline: 12px;
+  font-size: 12.5px;
+}
+
+.lg-segmented[data-stacked] .lg-segmented__item {
+  flex-direction: column;
+  gap: 2px;
+  height: auto;
+  min-width: 72px;
+  padding: 7px 18px;
+  font-size: 11px;
+}
+
+.lg-segmented[data-stacked] .lg-segmented__item svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---------------------------------------------------------------- switch */
+
+.lg-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lg-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 58px;
+  height: 26px;
+  border-radius: 999px;
+  background-color: rgba(var(--lg-text-rgb), 0.16);
+  box-shadow: inset 0 1px 2px rgba(var(--lg-shadow), 0.18);
+  touch-action: none;
+  transition: background-color 0.3s ease;
+}
+
+.lg-switch__track[aria-checked="true"] {
+  background-color: color-mix(in srgb, var(--lg-success) calc(var(--lg-tinted-a) * 100%), transparent);
+}
+
+.lg-switch__knob {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 34px;
+  height: 22px;
+  z-index: 1;
+  /* A thin line keeps the opaque knob from vanishing on the gray track */
+  outline: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+.lg-switch__knob[data-pressed] {
+  outline: none;
+}
+
+.lg-switch__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- slider */
+
+.lg-slider__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.lg-slider__label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lg-slider__value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--lg-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.lg-slider__control {
+  position: relative;
+  height: 32px;
+}
+
+.lg-slider__rail {
+  position: absolute;
+  inset-inline: 0;
+  top: 13px;
+  height: 6px;
+  border-radius: 3px;
+  background-color: rgba(var(--lg-text-rgb), 0.14);
+  overflow: hidden;
+}
+
+.lg-slider__fill {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background-color: var(--lg-accent);
+}
+
+.lg-slider__knob {
+  position: absolute;
+  top: 5px;
+  width: 34px;
+  height: 22px;
+  pointer-events: none;
+}
+
+/* The native range input does the work (keyboard, screen readers); the rest is only a view */
+.lg-slider__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.lg-slider__knob[data-focus] {
+  outline: 2px solid rgba(var(--lg-text-rgb), 0.55);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------- input, chip, card */
+
+.lg-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding-inline: 16px;
+}
+
+.lg-input:focus-within {
+  box-shadow: 0 0 0 3px rgba(var(--lg-text-rgb), 0.18);
+}
+
+.lg-input svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--lg-text-2);
+}
+
+.lg-input__field {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.lg-input__field::placeholder {
+  color: var(--lg-text-2);
+  opacity: 1;
+}
+
+.lg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding-inline: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.lg-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--lg-chip-color);
+  box-shadow: 0 0 8px var(--lg-chip-color);
+}
+
+.lg-card {
+  padding: 20px;
+}
+
+.lg-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.lg-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.lg-card__subtitle {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--lg-text-2);
+}
+
+/* ------------------------------------------------------------------ menu */
+
+.lg-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.lg-menu[data-open] {
+  z-index: 20;
+}
+
+.lg-menu__sizer {
+  visibility: hidden;
+}
+
+.lg-menu__surface {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  overflow: hidden;
+}
+
+.lg-menu__surface[data-open] {
+  min-width: 210px;
+}
+
+.lg-menu__face {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding-inline: 18px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lg-menu__face svg {
+  width: 19px;
+  height: 19px;
+}
+
+.lg-menu__trigger {
+  display: block;
+}
+
+.lg-menu__list {
+  padding: 6px;
+}
+
+.lg-menu__item {
+  --lg-corner-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lg-text);
+}
+
+.lg-menu__item[data-danger] {
+  color: var(--lg-danger);
+}
+
+.lg-menu__item svg {
+  width: 19px;
+  height: 19px;
+  opacity: 0.8;
+}
+
+.lg-menu__item:hover {
+  background-color: rgba(var(--lg-text-rgb), 0.08);
+}
+
+/* --------------------------------------------------------- dialog, toast */
+
+.lg-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background-color: rgba(var(--lg-shadow), 0.14);
+}
+
+.lg-dialog {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+}
+
+.lg-dialog:focus {
+  outline: none;
+}
+
+.lg-dialog__title {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.lg-dialog__body {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--lg-text-2);
+}
+
+.lg-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.lg-toast-region {
+  position: fixed;
+  top: 20px;
+  inset-inline: 0;
+  z-index: 1400;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.lg-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding-inline: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lg-toast svg {
+  width: 20px;
+  height: 20px;
+  color: var(--lg-success);
+}

@@ -1,0 +1,30 @@
+name: Bug report
+description: Something does not render or behave as expected
+labels: [bug]
+body:
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 139, Safari 18, Firefox 130
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: A minimal code sample or a link to a reproduction. Include a screenshot if the problem is visual.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
