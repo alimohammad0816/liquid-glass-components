@@ -1,6 +1,6 @@
 {
   "name": "liquid-glass-components",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Liquid glass UI components for React: edge refraction, dynamic specular light, spring physics and metaball merging.",
   "keywords": [
     "react",
@@ -40,7 +40,10 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./styles.css": "./dist/styles.css",
+    "./styles.css": {
+      "types": "./dist/styles.d.ts",
+      "default": "./dist/styles.css"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -51,6 +54,7 @@
   "scripts": {
     "dev": "vite --config demo/vite.config.ts",
     "build": "tsup",
+    "postbuild": "node scripts/postbuild.mjs",
     "build:demo": "vite build --config demo/vite.config.ts",
     "preview": "vite preview --config demo/vite.config.ts",
     "typecheck": "tsc --noEmit",
